@@ -3,8 +3,8 @@ import { Suspense } from "react";
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = {
-  title: "Log In | NutriTrack",
-  description: "Sign in or create your NutriTrack account.",
+  title: "Log In | nuBoF",
+  description: "Sign in or create your nuBoF account.",
 };
 
 /**

@@ -1,36 +1,50 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# nuBoF — Sync Your Body's Fuel
 
-## Getting Started
+> **Syncing your Body's Fuel with Precision Nutrition.**
 
-First, run the development server:
+Most apps just track what you eat. **nuBoF** treats your nutrition as fuel. By syncing your Macronutrients and Micronutrients directly to your body's specific needs, we eliminate the guesswork of performance.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+---
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## What nuBoF Does
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Feature | Description |
+|---|---|
+| **Sync Engine** | Calculates your personalised calorie & macro targets using BMR + TDEE, then syncs every meal log against them in real-time |
+| **Macro-Lens** | Visual donut chart + progress bars for Protein, Carbs and Fat |
+| **Micro-Detailer** | Tracks Iron, Potassium, Magnesium, Vitamin C and Vitamin D against your daily targets |
+| **Meal Splits** | Divide your daily targets across Breakfast, Lunch, Dinner (and custom splits) with drag-and-drop reordering |
+| **Food Search** | Powered by the USDA FoodData Central API with smart quantity + measurement inputs |
+| **Saved Meals** | Build multi-ingredient meals, save them to your library, and quick-log them in one tap |
+| **Custom Foods** | Add any food not in the database with full macro/micro values and reuse it anywhere |
+| **Water Tracking** | Log intake in ml or glasses; configurable daily goal |
+| **History** | Browse past logs by date with a weekly calorie trend chart |
+| **Dark Mode** | Full light/dark theme with system preference detection |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## Tech Stack
 
-To learn more about Next.js, take a look at the following resources:
+- **Framework** — Next.js 15 (App Router) + TypeScript
+- **Database & Auth** — Supabase (PostgreSQL + Row Level Security)
+- **Styling** — Tailwind CSS + ShadCN UI
+- **State** — React Query (server state) + React Hook Form
+- **Charts** — Recharts
+- **Animations** — Framer Motion
+- **Drag & Drop** — dnd-kit
+- **Validation** — Zod
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## Deploy on Vercel
+## How to Use
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. **Sign up** — create an account and verify your email.
+2. **Onboard** — enter your age, sex, height, weight, activity level and goal. nuBoF calculates your daily targets and syncs them to your profile.
+3. **Track Food** — search the nuBoF database, pick a quantity and measure, select a meal split (Breakfast / Lunch / Dinner), and log it.
+4. **Dashboard** — view your Today's Sync summary: calories consumed vs. target, Macro-Lens chart, Micro-Detailer bars, water intake and per-meal breakdowns.
+5. **Meals** — build saved meals from multiple ingredients for quick logging. Add custom foods for anything not in the database.
+6. **History** — pick any past date to review your logs and weekly trend.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+

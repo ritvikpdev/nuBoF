@@ -52,10 +52,12 @@ export function useLogMeal() {
     mutationFn: ({
       userId,
       meal,
+      mealSplitId,
     }: {
       userId: string;
       meal: SavedMealWithIngredients;
-    }) => logSavedMeal(userId, meal),
+      mealSplitId?: string | null;
+    }) => logSavedMeal(userId, meal, mealSplitId),
     onSuccess: (_data, { userId }) => {
       void queryClient.invalidateQueries({ queryKey: ["todayLogs", userId] });
     },

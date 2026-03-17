@@ -51,8 +51,11 @@ export async function getSavedMeals(userId: string): Promise<SavedMealWithIngred
 }
 
 /**
- * Creates a saved meal with its ingredients in two sequential writes.
- * Totals are derived from the draft ingredients so they're always in sync.
+ * Creates a saved meal with its ingredients.
+ *
+ * The two writes are not wrapped in a DB transaction (PostgREST client limitation),
+ * so if the ingredients insert fails we immediately delete the just-created meal row
+ * to avoid leaving an orphaned record.
  */
 export async function createSavedMeal(
   userId: string,
@@ -74,21 +77,33 @@ export async function createSavedMeal(
   const rows = ingredients.map(({ food, qty }) => {
     const s = scaleFood(food, qty);
     return {
-      meal_id:      meal.id,
-      food_name:    s.name,
-      serving_size: qty === 1 ? "1 serving" : `${qty} servings`,
-      calories:     s.calories,
-      protein_g:    s.protein_g,
-      carbs_g:      s.carbs_g,
-      fat_g:        s.fat_g,
+      meal_id:       meal.id,
+      food_name:     s.name,
+      serving_size:  qty === 1 ? "1 serving" : `${qty} servings`,
+      calories:      s.calories,
+      protein_g:     s.protein_g,
+      carbs_g:       s.carbs_g,
+      fat_g:         s.fat_g,
+      // Micros — preserved so they flow through correctly when the meal is logged
+      iron_mg:       s.iron_mg,
+      potassium_mg:  s.potassium_mg  || null,
+      magnesium_mg:  s.magnesium_mg  || null,
+      vitamin_c_mg:  s.vitamin_c_mg  || null,
+      vitamin_d_mcg: s.vitamin_d_mcg || null,
     };
   });
 
   const { error: ingErr } = await supabase.from("meal_ingredients").insert(rows);
-  if (ingErr) throw ingErr;
+
+  if (ingErr) {
+    // Compensating delete: remove the orphaned saved_meals row so the DB
+    // stays consistent even though we can't do a real transaction here.
+    await supabase.from("saved_meals").delete().eq("id", meal.id);
+    throw ingErr;
+  }
 }
 
-/** Deletes a saved meal. Ingredients are removed first to satisfy FK constraints. */
+/** Deletes a saved meal and all its ingredients (ingredients first to satisfy FK). */
 export async function deleteSavedMeal(mealId: string): Promise<void> {
   const supabase = createClient();
   await supabase.from("meal_ingredients").delete().eq("meal_id", mealId);
@@ -99,27 +114,34 @@ export async function deleteSavedMeal(mealId: string): Promise<void> {
 /**
  * Logs every ingredient of a saved meal as individual food_log entries for today.
  * Each ingredient becomes its own line in the dashboard so calorie sources are visible.
+ * Micronutrients are read from the stored ingredient data so they appear correctly
+ * on the Micronutrients card after logging.
+ * An optional mealSplitId assigns all logged rows to the same meal split.
  */
 export async function logSavedMeal(
   userId: string,
   meal: SavedMealWithIngredients,
+  mealSplitId?: string | null,
 ): Promise<void> {
   const supabase = createClient();
   const todayStr = new Date().toLocaleDateString("en-CA");
 
   const rows = meal.meal_ingredients.map((ing) => ({
-    user_id:      userId,
-    date:         todayStr,
-    food_name:    ing.food_name,
-    calories:     ing.calories,
-    protein_g:    ing.protein_g,
-    carbs_g:      ing.carbs_g,
-    fat_g:        ing.fat_g,
-    iron_mg:      0,
-    potassium_mg: null,
-    magnesium_mg: null,
-    vitamin_c_mg: null,
-    vitamin_d_mcg: null,
+    user_id:       userId,
+    date:          todayStr,
+    food_name:     ing.food_name,
+    calories:      ing.calories,
+    protein_g:     ing.protein_g,
+    carbs_g:       ing.carbs_g,
+    fat_g:         ing.fat_g,
+    // Use stored micro values; fall back to 0 / null for older rows created
+    // before migration 004 added these columns.
+    iron_mg:       ing.iron_mg       ?? 0,
+    potassium_mg:  ing.potassium_mg  ?? null,
+    magnesium_mg:  ing.magnesium_mg  ?? null,
+    vitamin_c_mg:  ing.vitamin_c_mg  ?? null,
+    vitamin_d_mcg: ing.vitamin_d_mcg ?? null,
+    meal_split_id: mealSplitId ?? null,
   }));
 
   const { error } = await supabase.from("food_logs").insert(rows);

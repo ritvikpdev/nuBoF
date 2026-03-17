@@ -1,24 +1,29 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useUser } from "@/hooks/use-user";
 import { useDailyGoals, useTodayLogs } from "@/hooks/use-nutrition";
+import { useMealSplits } from "@/hooks/use-meal-splits";
+import { useUserProfile } from "@/hooks/use-user-profile";
 import { deleteLog, logFood } from "@/services/nutrition";
-import type { FoodLogEntry } from "@/types";
+import type { FoodLogEntry, DailyGoals } from "@/types";
 import { ZERO_TOTALS } from "@/lib/constants";
 import { CaloriesCard } from "./_components/calories-card";
 import { MacrosCard } from "./_components/macros-card";
 import { MicrosCard } from "./_components/micros-card";
-import { MealsList } from "./_components/meals-list";
+import { WaterCard } from "./_components/water-card";
+import { MealSplitView } from "./_components/meal-split-view";
+import { ManageSplitsModal } from "./_components/manage-splits-modal";
 import { DashboardSkeleton } from "./_components/dashboard-skeleton";
 
 export default function DashboardPage() {
   const { user } = useUser();
   const queryClient = useQueryClient();
+  const [manageSplitsOpen, setManageSplitsOpen] = useState(false);
 
   const {
     data: goals,
@@ -30,6 +35,12 @@ export default function DashboardPage() {
     isLoading: logsLoading,
     error: logsError,
   } = useTodayLogs(user?.id);
+  const {
+    data: splits = [],
+    isLoading: splitsLoading,
+  } = useMealSplits(user?.id);
+
+  const { data: profile } = useUserProfile(user?.id);
 
   const isLoading = goalsLoading || logsLoading;
 
@@ -61,10 +72,25 @@ export default function DashboardPage() {
     [goals],
   );
 
+  // Safe DailyGoals object for MealSplitSection (provides fallback defaults)
+  const goalsForSplits: DailyGoals = useMemo(
+    () => ({
+      target_calories:     targets.calories,
+      target_protein:      targets.protein,
+      target_carbs:        targets.carbs,
+      target_fat:          targets.fat,
+      target_iron_mg:      targets.iron,
+      target_potassium_mg: targets.potassium,
+      target_magnesium_mg: targets.magnesium,
+      target_vitamin_c_mg: targets.vitaminC,
+      target_vitamin_d_mcg:targets.vitaminD,
+    }),
+    [targets],
+  );
+
   const deleteLogMutation = useMutation({
     mutationFn: (logId: string) => deleteLog(logId),
 
-    // ① Remove item from cache immediately so the list updates in <1 frame.
     onMutate: async (logId) => {
       if (!user) return;
       await queryClient.cancelQueries({ queryKey: ["todayLogs", user.id] });
@@ -79,7 +105,6 @@ export default function DashboardPage() {
       return { snapshot, deleted };
     },
 
-    // ② Rollback on error.
     onError: (err: Error, _logId, context) => {
       if (context?.snapshot !== undefined) {
         queryClient.setQueryData(["todayLogs", user?.id], context.snapshot);
@@ -87,7 +112,6 @@ export default function DashboardPage() {
       toast.error(`Could not remove entry: ${err.message}`);
     },
 
-    // ③ Sync with server and offer Undo.
     onSuccess: (_data, _logId, context) => {
       void queryClient.invalidateQueries({ queryKey: ["todayLogs", user?.id] });
 
@@ -113,7 +137,7 @@ export default function DashboardPage() {
               magnesium_mg: Number(entry.magnesium_mg  ?? 0),
               vitamin_c_mg: Number(entry.vitamin_c_mg  ?? 0),
               vitamin_d_mcg:Number(entry.vitamin_d_mcg ?? 0),
-            }).then(() =>
+            }, entry.meal_split_id ?? null).then(() =>
               queryClient.invalidateQueries({ queryKey: ["todayLogs", user.id] }),
             );
           },
@@ -141,7 +165,7 @@ export default function DashboardPage() {
 
         {/* Header */}
         <header className="pb-1">
-          <h1 className="text-2xl font-bold text-foreground">Today&apos;s Overview</h1>
+          <h1 className="text-2xl font-bold text-foreground">Today&apos;s Sync</h1>
           <p className="text-muted-foreground text-sm mt-0.5">{todayFormatted}</p>
         </header>
 
@@ -214,16 +238,35 @@ export default function DashboardPage() {
           />
         </motion.div>
 
-        {/* 4 — Today's meals */}
+        {/* 4 — Water intake */}
+        {user && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1], delay: 0.27 }}
+          >
+            <WaterCard
+              userId={user.id}
+              goalMl={goals?.water_goal_ml ?? 2500}
+              unit={profile?.water_unit ?? "ml"}
+            />
+          </motion.div>
+        )}
+
+        {/* 5 — Meal splits */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1], delay: 0.29 }}
         >
-          <MealsList
+          <MealSplitView
+            splits={splits}
+            splitsLoading={splitsLoading}
             logs={logsData?.logs ?? []}
+            goals={goalsForSplits}
             onDelete={(id) => deleteLogMutation.mutate(id)}
             deletingId={deleteLogMutation.isPending ? deleteLogMutation.variables : undefined}
+            onManage={() => setManageSplitsOpen(true)}
           />
         </motion.div>
 
@@ -240,6 +283,16 @@ export default function DashboardPage() {
           </Link>
         </div>
       </div>
+
+      {/* Manage Splits Modal */}
+      {user && (
+        <ManageSplitsModal
+          isOpen={manageSplitsOpen}
+          onClose={() => setManageSplitsOpen(false)}
+          splits={splits}
+          userId={user.id}
+        />
+      )}
     </div>
   );
 }

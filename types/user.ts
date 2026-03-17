@@ -4,14 +4,18 @@ export type ActivityLevelKey = "sedentary" | "light" | "moderate" | "very";
 
 export type PrimaryGoalKey = "lose" | "maintain" | "gain";
 
+export type WaterUnit = "ml" | "glasses" | "both";
+
 export interface UserProfile {
   id: string;
+  name?: string | null;
   sex: BiologicalSex;
   age: number;
   height_cm: number;
   weight_kg: number;
   activity_level: number;
   primary_goal: PrimaryGoalKey;
+  water_unit?: WaterUnit;
 }
 
 export interface CalculatedTargets {

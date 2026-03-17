@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 
@@ -72,6 +73,14 @@ export function LoginForm() {
     return (
       <div className="min-h-[calc(100vh-3.5rem)] flex items-center justify-center p-4 bg-gradient-to-br from-background to-muted">
         <div className="w-full max-w-md">
+          <div className="flex flex-col items-center mb-8">
+            <div className="bg-white rounded-2xl px-6 py-3 shadow-sm">
+              <Image src="/full_logo.png" alt="nuBoF" width={160} height={53} priority />
+            </div>
+            <p className="text-sm text-muted-foreground mt-3 text-center">
+              Syncing your Body&apos;s Fuel with Precision Nutrition.
+            </p>
+          </div>
           <div className="rounded-2xl border border-border bg-card shadow-xl p-8">
             <h1 className="text-2xl font-semibold text-center text-card-foreground mb-2">
               Reset password
@@ -122,6 +131,14 @@ export function LoginForm() {
   return (
     <div className="min-h-[calc(100vh-3.5rem)] flex items-center justify-center p-4 bg-gradient-to-br from-background to-muted">
       <div className="w-full max-w-md">
+        <div className="flex flex-col items-center mb-8">
+          <div className="bg-white rounded-2xl px-6 py-3 shadow-sm">
+            <Image src="/full_logo.png" alt="nuBoF" width={160} height={53} priority />
+          </div>
+          <p className="text-sm text-muted-foreground mt-3 text-center">
+            Syncing your Body&apos;s Fuel with Precision Nutrition.
+          </p>
+        </div>
         <div className="rounded-2xl border border-border bg-card shadow-xl p-8">
           <h1 className="text-2xl font-semibold text-center text-card-foreground mb-6">
             {mode === "login" ? "Welcome back" : "Create an account"}

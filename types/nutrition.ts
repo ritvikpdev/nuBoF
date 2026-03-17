@@ -8,6 +8,36 @@ export interface DailyGoals {
   target_magnesium_mg?: number | null;
   target_vitamin_c_mg?: number | null;
   target_vitamin_d_mcg?: number | null;
+  water_goal_ml?: number | null;
+}
+
+/** A user-created food entry stored in the custom_foods table. */
+export interface CustomFood {
+  id: string;
+  user_id: string;
+  name: string;
+  /** Nutrition values are defined per this serving size (e.g. 100). */
+  serving_size: number;
+  /** Unit for the serving size: 'g' | 'oz' | 'ml'. */
+  serving_unit: string;
+  calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  iron_mg: number;
+  potassium_mg: number | null;
+  magnesium_mg: number | null;
+  vitamin_c_mg: number | null;
+  vitamin_d_mcg: number | null;
+  created_at: string;
+}
+
+export interface WaterLog {
+  id: string;
+  user_id: string;
+  date: string;
+  amount_ml: number;
+  created_at: string;
 }
 
 export interface FoodLogEntry {
@@ -24,6 +54,16 @@ export interface FoodLogEntry {
   magnesium_mg?: number | null;
   vitamin_c_mg?: number | null;
   vitamin_d_mcg?: number | null;
+  meal_split_id?: string | null;
+}
+
+export interface MealSplit {
+  id: string;
+  user_id: string;
+  name: string;
+  percentage: number;
+  display_order: number;
+  created_at: string;
 }
 
 export interface DailyTotals {
@@ -90,4 +130,10 @@ export interface MealIngredient {
   protein_g: number;
   carbs_g: number;
   fat_g: number;
+  // Micros added in migration 004; optional so pre-migration rows remain compatible.
+  iron_mg?: number | null;
+  potassium_mg?: number | null;
+  magnesium_mg?: number | null;
+  vitamin_c_mg?: number | null;
+  vitamin_d_mcg?: number | null;
 }

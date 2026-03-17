@@ -9,7 +9,9 @@ import { useUser } from "@/hooks/use-user";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useCreateMeal } from "@/hooks/use-meals";
 import type { DraftIngredient } from "@/hooks/use-meals";
+import { useCustomFoods } from "@/hooks/use-custom-foods";
 import { searchFoods } from "@/services/nutrition";
+import { toCustomParsedFood } from "@/services/custom-foods";
 import type { ParsedFood } from "@/types";
 import { FoodDetailSheet } from "@/app/search/_components/food-detail-sheet";
 
@@ -60,6 +62,7 @@ export default function CreateMealPage() {
   const router = useRouter();
   const { user } = useUser();
   const createMealMutation = useCreateMeal();
+  const { data: customFoods = [] } = useCustomFoods(user?.id);
 
   // ── Form state ──────────────────────────────────────────────────────────────
   const [mealName, setMealName]       = useState("");
@@ -115,12 +118,30 @@ export default function CreateMealPage() {
       .finally(() => setIsSearching(false));
   }, [debouncedQuery]);
 
+  // ── Custom foods matching the search query ───────────────────────────────────
+  const matchingCustomFoods = useMemo<ParsedFood[]>(() => {
+    const q = debouncedQuery.trim().toLowerCase();
+    if (!q) return [];
+    return customFoods
+      .filter((f) => f.name.toLowerCase().includes(q))
+      .map(toCustomParsedFood);
+  }, [debouncedQuery, customFoods]);
+
+  const combinedSearchResults = useMemo(
+    () => [...matchingCustomFoods, ...searchResults],
+    [matchingCustomFoods, searchResults],
+  );
+  const customFoodIds = useMemo(
+    () => new Set(matchingCustomFoods.map((f) => f.foodId)),
+    [matchingCustomFoods],
+  );
+
   // ── Totals (live) ────────────────────────────────────────────────────────────
   const totals = useMemo(() => calcTotals(ingredients), [ingredients]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
 
-  function handleAddIngredient(food: ParsedFood, qty: number) {
+  function handleAddIngredient(food: ParsedFood, qty: number, _mealSplitId?: string | null) {
     setIngredients((prev) => [
       ...prev,
       { draftId: crypto.randomUUID(), food, qty },
@@ -365,9 +386,9 @@ export default function CreateMealPage() {
                   <p className="text-sm text-muted-foreground text-center py-8">{searchError}</p>
                 )}
 
-                {!isSearching && searchResults.length > 0 && (
+                {!isSearching && combinedSearchResults.length > 0 && (
                   <div className="space-y-2">
-                    {searchResults.map((food) => (
+                    {combinedSearchResults.map((food) => (
                       <motion.button
                         key={food.foodId}
                         type="button"
@@ -379,10 +400,17 @@ export default function CreateMealPage() {
                       >
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground leading-snug truncate">
-                              {food.name}
-                            </p>
-                            <div className="flex gap-3 mt-1">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <p className="text-sm font-medium text-foreground leading-snug truncate">
+                                {food.name}
+                              </p>
+                              {customFoodIds.has(food.foodId) && (
+                                <span className="flex-shrink-0 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
+                                  Custom
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex gap-3 mt-0.5">
                               <span className="text-xs font-bold text-foreground tabular-nums">
                                 {food.calories} <span className="font-normal text-muted-foreground">kcal</span>
                               </span>
@@ -406,7 +434,7 @@ export default function CreateMealPage() {
                   </div>
                 )}
 
-                {!isSearching && !searchError && searchResults.length === 0 && !debouncedQuery.trim() && (
+                {!isSearching && !searchError && combinedSearchResults.length === 0 && !debouncedQuery.trim() && (
                   <div className="text-center py-12 text-muted-foreground">
                     <p className="text-3xl mb-3">🔍</p>
                     <p className="text-sm">Start typing to search the food database</p>

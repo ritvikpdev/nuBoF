@@ -19,8 +19,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NutriTrack – Your Daily Nutrition Companion",
-  description: "Track your daily nutrition, macros, and reach your health goals.",
+  title: "nuBoF — Sync Your Body's Fuel",
+  description: "Syncing your Body's Fuel with Precision Nutrition. Track Macronutrients and Micronutrients tailored to your body.",
 };
 
 export default function RootLayout({

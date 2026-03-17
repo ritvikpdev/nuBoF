@@ -119,7 +119,7 @@ export function StepGoal({ defaultValue, onNext, submitting }: Props) {
             Calculating your targets…
           </span>
         ) : (
-          "Calculate My Targets →"
+          "Sync My Targets →"
         )}
       </Button>
     </div>

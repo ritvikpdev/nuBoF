@@ -1,4 +1,4 @@
-import type { UserProfile, BiologicalSex, PrimaryGoalKey } from "@/types";
+import type { UserProfile, BiologicalSex, PrimaryGoalKey, WaterUnit } from "@/types";
 import { createClient } from "@/lib/supabase/client";
 
 /** Returns the user's profile row from the users table, or null if not onboarded. */
@@ -7,7 +7,7 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
 
   const { data, error } = await supabase
     .from("users")
-    .select("id, sex, age, height_cm, weight_kg, activity_level, primary_goal")
+    .select("id, name, sex, age, height_cm, weight_kg, activity_level, primary_goal, water_unit")
     .eq("id", userId)
     .maybeSingle();
 
@@ -19,12 +19,14 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
 export async function upsertUserProfile(
   userId: string,
   profile: {
+    name?: string;
     sex: BiologicalSex;
     age: number;
     height_cm: number;
     weight_kg: number;
     activity_level: number;
     primary_goal: PrimaryGoalKey;
+    water_unit?: WaterUnit;
   },
 ): Promise<void> {
   const supabase = createClient();
@@ -33,6 +35,16 @@ export async function upsertUserProfile(
     .from("users")
     .upsert({ id: userId, ...profile }, { onConflict: "id" });
 
+  if (error) throw error;
+}
+
+/** Updates only the water_unit preference for a user. */
+export async function updateWaterUnit(userId: string, waterUnit: WaterUnit): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("users")
+    .update({ water_unit: waterUnit })
+    .eq("id", userId);
   if (error) throw error;
 }
 
@@ -56,6 +68,7 @@ export async function saveDailyGoals(
     target_magnesium_mg: number;
     target_vitamin_c_mg: number;
     target_vitamin_d_mcg: number;
+    water_goal_ml?: number;
   },
 ): Promise<void> {
   const supabase = createClient();

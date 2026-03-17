@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { Leaf, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
+import { useUserProfile } from "@/hooks/use-user-profile";
 import { createClient } from "@/lib/supabase/client";
 import { Container } from "./container";
 import { ThemeToggle } from "./theme-toggle";
@@ -12,7 +14,7 @@ import { Button } from "@/components/ui/button";
 
 const NAV_LINKS = [
   { href: "/dashboard", label: "Dashboard" },
-  { href: "/search",    label: "Search"    },
+  { href: "/search",    label: "Track Food" },
   { href: "/meals",     label: "Meals"     },
   { href: "/history",   label: "History"   },
 ] as const;
@@ -21,6 +23,8 @@ export function Navbar() {
   const pathname  = usePathname();
   const router    = useRouter();
   const { user, isLoading } = useAuth();
+  const { data: profile } = useUserProfile(user?.id);
+  const displayName = profile?.name ?? user?.email?.split("@")[0] ?? null;
 
   if (pathname.startsWith("/auth") || pathname.startsWith("/onboarding")) return null;
 
@@ -41,10 +45,7 @@ export function Navbar() {
             href="/"
             className="flex items-center gap-2 font-semibold text-foreground transition-opacity hover:opacity-75"
           >
-            <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-primary/10">
-              <Leaf className="size-4 text-primary" />
-            </span>
-            <span className="tracking-tight">NutriTrack</span>
+            <Image src="/full_logo.png" width={200} height={200} alt="nuBoF" className="rounded-full" />
           </Link>
 
           {/* ── Nav links (desktop only) + actions ── */}
@@ -79,7 +80,7 @@ export function Navbar() {
               {!isLoading && user && (
                 <>
                   <span className="hidden text-xs text-muted-foreground sm:block max-w-[9rem] truncate">
-                    {user.email}
+                    {displayName ?? user.email}
                   </span>
                   <Button
                     variant="ghost"

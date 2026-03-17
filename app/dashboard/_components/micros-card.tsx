@@ -33,7 +33,7 @@ export function MicrosCard({ totals, targets }: Props) {
 
       <div className="p-5 pt-4">
         <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-4">
-          Micronutrients
+          Micro-Detailer
         </p>
 
         <div className="space-y-3.5">

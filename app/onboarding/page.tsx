@@ -6,8 +6,10 @@ import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
 import { useUser } from "@/hooks/use-user";
 import { upsertUserProfile, saveDailyGoals } from "@/services/user";
+import { seedDefaultSplits } from "@/services/meal-splits";
 import { calculateTargets } from "@/lib/nutrition-calculator";
 import { ACTIVITY_LEVELS } from "@/lib/constants";
+import { StepName } from "./_components/step-name";
 import { StepAge } from "./_components/step-age";
 import { StepSex } from "./_components/step-sex";
 import { StepHeight } from "./_components/step-height";
@@ -17,6 +19,7 @@ import { StepGoal } from "./_components/step-goal";
 import type { BiologicalSex, ActivityLevelKey, PrimaryGoalKey } from "@/types";
 
 interface OnboardingData {
+  name?: string;
   age?: number;
   sex?: BiologicalSex;
   height_cm?: number;
@@ -25,7 +28,7 @@ interface OnboardingData {
   primary_goal?: PrimaryGoalKey;
 }
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 7;
 
 /** Slide variants — direction 1 = forward, -1 = backward */
 const slideVariants = {
@@ -77,7 +80,9 @@ export default function OnboardingPage() {
 
     setSubmitting(true);
     try {
-      const multiplier = ACTIVITY_LEVELS.find((a) => a.value === final.activity_level)!.multiplier;
+      const activityEntry = ACTIVITY_LEVELS.find((a) => a.value === final.activity_level);
+      if (!activityEntry) throw new Error("Activity level is missing. Please go back and select one.");
+      const multiplier = activityEntry.multiplier;
 
       const targets = calculateTargets(
         final.weight_kg!,
@@ -89,6 +94,7 @@ export default function OnboardingPage() {
       );
 
       await upsertUserProfile(user.id, {
+        name: final.name,
         sex: final.sex!,
         age: final.age!,
         height_cm: final.height_cm!,
@@ -107,12 +113,22 @@ export default function OnboardingPage() {
         target_magnesium_mg: targets.targetMagnesiumMg,
         target_vitamin_c_mg: targets.targetVitaminCMg,
         target_vitamin_d_mcg: targets.targetVitaminDMcg,
+        water_goal_ml: 2500,
       });
 
-      toast.success("Your profile is set up! Let's start tracking.");
+      // Seed default meal splits (Breakfast/Lunch/Dinner/Snacks) for the new user.
+      await seedDefaultSplits(user.id);
+
+      toast.success(`Welcome to nuBoF, ${final.name ?? "there"}! Let's start syncing.`);
       router.push("/dashboard");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      const message =
+        err instanceof Error
+          ? err.message
+          : typeof err === "object" && err !== null && "message" in err
+            ? String((err as { message: unknown }).message)
+            : "Something went wrong. Please try again.";
+      toast.error(message);
       setSubmitting(false);
     }
   }
@@ -125,7 +141,7 @@ export default function OnboardingPage() {
       {/* ── Progress bar ── */}
       <div className="h-1 w-full bg-muted flex-shrink-0">
         <motion.div
-          className="h-full w-full bg-emerald-500 rounded-r-full origin-left"
+          className="h-full w-full bg-primary rounded-r-full origin-left"
           animate={{ scaleX: progressPct / 100 }}
           transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
         />
@@ -164,12 +180,13 @@ export default function OnboardingPage() {
             transition={transition}
             className="w-full max-w-md"
           >
-            {step === 0 && <StepAge      defaultValue={formData.age}            onNext={goNext} />}
-            {step === 1 && <StepSex      defaultValue={formData.sex}            onNext={goNext} />}
-            {step === 2 && <StepHeight   defaultValue={formData.height_cm}      onNext={goNext} />}
-            {step === 3 && <StepWeight   defaultValue={formData.weight_kg}      onNext={goNext} />}
-            {step === 4 && <StepActivity defaultValue={formData.activity_level} onNext={goNext} />}
-            {step === 5 && (
+            {step === 0 && <StepName     defaultValue={formData.name}           onNext={goNext} />}
+            {step === 1 && <StepAge      defaultValue={formData.age}            onNext={goNext} />}
+            {step === 2 && <StepSex      defaultValue={formData.sex}            onNext={goNext} />}
+            {step === 3 && <StepHeight   defaultValue={formData.height_cm}      onNext={goNext} />}
+            {step === 4 && <StepWeight   defaultValue={formData.weight_kg}      onNext={goNext} />}
+            {step === 5 && <StepActivity defaultValue={formData.activity_level} onNext={goNext} />}
+            {step === 6 && (
               <StepGoal
                 defaultValue={formData.primary_goal}
                 onNext={handleFinish}

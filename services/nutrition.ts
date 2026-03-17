@@ -56,7 +56,11 @@ export async function searchFoods(query: string, signal?: AbortSignal): Promise<
 }
 
 /** Inserts a food entry into food_logs for today (local date). */
-export async function logFood(userId: string, food: ParsedFood): Promise<void> {
+export async function logFood(
+  userId: string,
+  food: ParsedFood,
+  mealSplitId?: string | null,
+): Promise<void> {
   const supabase = createClient();
   // Use local date (en-CA locale produces YYYY-MM-DD) to avoid UTC midnight cutoff
   const todayStr = new Date().toLocaleDateString("en-CA");
@@ -74,6 +78,7 @@ export async function logFood(userId: string, food: ParsedFood): Promise<void> {
     magnesium_mg: food.magnesium_mg || null,
     vitamin_c_mg: food.vitamin_c_mg || null,
     vitamin_d_mcg: food.vitamin_d_mcg || null,
+    meal_split_id: mealSplitId ?? null,
   });
 
   if (error) throw error;
@@ -106,7 +111,7 @@ export async function deleteLog(logId: string): Promise<void> {
 }
 
 const LOG_SELECT =
-  "id, user_id, date, food_name, calories, protein_g, carbs_g, fat_g, iron_mg, potassium_mg, magnesium_mg, vitamin_c_mg, vitamin_d_mcg";
+  "id, user_id, date, food_name, calories, protein_g, carbs_g, fat_g, iron_mg, potassium_mg, magnesium_mg, vitamin_c_mg, vitamin_d_mcg, meal_split_id";
 
 /** Fetches food log entries for a user on a specific date (YYYY-MM-DD). */
 export async function getLogsByDate(userId: string, dateStr: string): Promise<FoodLogEntry[]> {
