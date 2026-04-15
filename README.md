@@ -2,49 +2,92 @@
 
 > **Syncing your Body's Fuel with Precision Nutrition.**
 
-Most apps just track what you eat. **nuBoF** treats your nutrition as fuel. By syncing your Macronutrients and Micronutrients directly to your body's specific needs, we eliminate the guesswork of performance.
+Most apps just track what you eat. **nuBoF** treats your nutrition as fuel. By syncing your macronutrients and micronutrients directly to your body's specific needs, we eliminate the guesswork of performance.
 
 ---
 
-## What nuBoF Does
+## Repository layout
+
+This workspace is a small monorepo: the root `package.json` is a meta-package for tooling hosts (for example Vercel). The **Next.js application** lives in **`nutrition-tracker/`** — clone the repo, then `cd nutrition-tracker` for install, env, and scripts.
+
+---
+
+## What nuBoF does
 
 | Feature | Description |
 |---|---|
-| **Sync Engine** | Calculates your personalised calorie & macro targets using BMR + TDEE, then syncs every meal log against them in real-time |
-| **Macro-Lens** | Visual donut chart + progress bars for Protein, Carbs and Fat |
-| **Micro-Detailer** | Tracks Iron, Potassium, Magnesium, Vitamin C and Vitamin D against your daily targets |
-| **Meal Splits** | Divide your daily targets across Breakfast, Lunch, Dinner (and custom splits) with drag-and-drop reordering |
-| **Food Search** | Powered by the USDA FoodData Central API with smart quantity + measurement inputs |
-| **Saved Meals** | Build multi-ingredient meals, save them to your library, and quick-log them in one tap |
-| **Custom Foods** | Add any food not in the database with full macro/micro values and reuse it anywhere |
-| **Water Tracking** | Log intake in ml or glasses; configurable daily goal |
+| **Sync engine** | Calculates personalised calorie and macro targets using BMR + TDEE, then syncs every meal log against them in real time |
+| **Nuri (AI assistant)** | In-app chat powered by Google Gemini; reads your profile, goals, and today's log (server-side) so answers stay grounded in your data |
+| **Macro-Lens** | Donut chart and progress bars for protein, carbs, and fat |
+| **Micro-Detailer** | Tracks iron, potassium, magnesium, vitamin C, and vitamin D against daily targets |
+| **Meal splits** | Divide daily targets across breakfast, lunch, dinner (and custom splits) with drag-and-drop reordering |
+| **Food search** | USDA FoodData Central via a server route; quantity and measurement inputs scale nutrition per serving |
+| **Saved meals** | Build multi-ingredient meals, save them to your library, and quick-log in one tap |
+| **Custom foods** | Add foods not in the database with full macro/micro values and reuse them anywhere |
+| **Water tracking** | Log intake in ml or glasses; configurable daily goal |
 | **History** | Browse past logs by date with a weekly calorie trend chart |
-| **Dark Mode** | Full light/dark theme with system preference detection |
+| **Settings** | Profile (including height/weight units), activity, goals, water preferences, theme, and target recalculation |
+| **Dark mode** | Light / dark / system themes |
 
 ---
 
-## Tech Stack
+## Tech stack
 
-- **Framework** — Next.js 15 (App Router) + TypeScript
-- **Database & Auth** — Supabase (PostgreSQL + Row Level Security)
-- **Styling** — Tailwind CSS + ShadCN UI
-- **State** — React Query (server state) + React Hook Form
+- **Framework** — Next.js 16 (App Router) + TypeScript
+- **UI** — React 19, Tailwind CSS v4, Radix UI / shadcn-style components
+- **Database & auth** — Supabase (PostgreSQL + Row Level Security)
+- **Server state** — TanStack React Query + React Hook Form
 - **Charts** — Recharts
 - **Animations** — Framer Motion
-- **Drag & Drop** — dnd-kit
 - **Validation** — Zod
+- **AI** — Vercel AI SDK + `@ai-sdk/google` (Gemini) for streaming chat
+- **Markdown in chat** — react-markdown + remark-gfm
 
 ---
 
+## Local development
 
-## How to Use
+**Requirements:** Node.js **>= 20.9.0** (see `engines` in `package.json`).
 
-1. **Sign up** — create an account and verify your email.
-2. **Onboard** — enter your age, sex, height, weight, activity level and goal. nuBoF calculates your daily targets and syncs them to your profile.
-3. **Track Food** — search the nuBoF database, pick a quantity and measure, select a meal split (Breakfast / Lunch / Dinner), and log it.
-4. **Dashboard** — view your Today's Sync summary: calories consumed vs. target, Macro-Lens chart, Micro-Detailer bars, water intake and per-meal breakdowns.
-5. **Meals** — build saved meals from multiple ingredients for quick logging. Add custom foods for anything not in the database.
-6. **History** — pick any past date to review your logs and weekly trend.
+1. **Install**
+
+   ```bash
+   cd nutrition-tracker
+   npm install
+   ```
+
+2. **Environment**
+
+   Copy `.env.example` to `.env.local` and fill in values:
+
+   | Variable | Purpose |
+   |---|---|
+   | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon (public) key |
+   | `USDA_API_KEY` | [USDA FoodData Central](https://fdc.nal.usda.gov/api-key-signup) — server-only food search |
+   | `GOOGLE_GENERATIVE_AI_API_KEY` | [Google AI Studio](https://aistudio.google.com/apikey) — server-only; powers Nuri. If omitted, the assistant returns a configuration error |
+
+3. **Run**
+
+   ```bash
+   npm run dev
+   ```
+
+   Open [http://localhost:3000](http://localhost:3000). Unauthenticated users are sent to `/auth/login`; after sign-up and onboarding, the app routes to `/dashboard`.
+
+**Other scripts:** `npm run build`, `npm start`, `npm run lint`, `npm run format`, `npm run format:check`.
 
 ---
 
+## How to use the app
+
+1. **Sign up** — Create an account and verify your email (Supabase auth).
+2. **Onboard** — Enter age, sex, height, weight, activity level, and goal. nuBoF calculates daily targets and stores them on your profile.
+3. **Track food** — Search the database, set quantity and unit, pick a meal split, and log. Use the centre **+** in the bottom nav (mobile) to open Track Food.
+4. **Dashboard** — Today's sync: calories vs target, Macro-Lens, Micro-Detailer, water, and per-meal breakdowns.
+5. **Nuri** — Floating assistant (hidden on `/auth` and `/onboarding`). Ask about today's progress, meal ideas, or how app features work.
+6. **Meals** — Build saved meals from ingredients for quick logging; add custom foods for anything missing from USDA.
+7. **History** — Pick a past date to review logs and the weekly calorie trend.
+8. **Settings** — Update profile, goals, water units, theme, and recalculated targets.
+
+---
