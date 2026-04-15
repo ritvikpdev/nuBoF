@@ -12,6 +12,8 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
+    "@ai-sdk/google": "^3.0.63",
+    "@ai-sdk/react": "^3.0.164",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
@@ -19,6 +21,7 @@
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.97.0",
     "@tanstack/react-query": "^5.90.21",
+    "ai": "^6.0.162",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.34.3",
@@ -29,7 +32,9 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-hook-form": "^7.71.2",
+    "react-markdown": "^10.1.0",
     "recharts": "^3.7.0",
+    "remark-gfm": "^4.0.1",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0",
     "zod": "^4.3.6"
