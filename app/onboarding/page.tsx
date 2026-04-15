@@ -16,7 +16,8 @@ import { StepHeight } from "./_components/step-height";
 import { StepWeight } from "./_components/step-weight";
 import { StepActivity } from "./_components/step-activity";
 import { StepGoal } from "./_components/step-goal";
-import type { BiologicalSex, ActivityLevelKey, PrimaryGoalKey } from "@/types";
+import { StepApproach } from "./_components/step-approach";
+import type { BiologicalSex, ActivityLevelKey, PrimaryGoalKey, SubGoalKey } from "@/types";
 
 interface OnboardingData {
   name?: string;
@@ -26,9 +27,10 @@ interface OnboardingData {
   weight_kg?: number;
   activity_level?: ActivityLevelKey;
   primary_goal?: PrimaryGoalKey;
+  sub_goal?: SubGoalKey;
 }
 
-const TOTAL_STEPS = 7;
+const TOTAL_STEPS = 8;
 
 /** Slide variants — direction 1 = forward, -1 = backward */
 const slideVariants = {
@@ -69,8 +71,8 @@ export default function OnboardingPage() {
     setStep((s) => s - 1);
   }
 
-  async function handleFinish(goalData: { primary_goal: PrimaryGoalKey }) {
-    const final = { ...formData, ...goalData };
+  async function handleFinish(approachData: { sub_goal: SubGoalKey }) {
+    const final = { ...formData, ...approachData };
 
     if (!user) {
       toast.error("Session expired. Please log in again.");
@@ -91,6 +93,7 @@ export default function OnboardingPage() {
         final.sex!,
         multiplier,
         final.primary_goal!,
+        final.sub_goal,
       );
 
       await upsertUserProfile(user.id, {
@@ -101,6 +104,7 @@ export default function OnboardingPage() {
         weight_kg: final.weight_kg!,
         activity_level: multiplier,
         primary_goal: final.primary_goal!,
+        sub_goal: final.sub_goal,
       });
 
       await saveDailyGoals(user.id, {
@@ -186,9 +190,11 @@ export default function OnboardingPage() {
             {step === 3 && <StepHeight   defaultValue={formData.height_cm}      onNext={goNext} />}
             {step === 4 && <StepWeight   defaultValue={formData.weight_kg}      onNext={goNext} />}
             {step === 5 && <StepActivity defaultValue={formData.activity_level} onNext={goNext} />}
-            {step === 6 && (
-              <StepGoal
-                defaultValue={formData.primary_goal}
+            {step === 6 && <StepGoal defaultValue={formData.primary_goal} onNext={goNext} />}
+            {step === 7 && formData.primary_goal && (
+              <StepApproach
+                parentGoal={formData.primary_goal}
+                defaultValue={formData.sub_goal}
                 onNext={handleFinish}
                 submitting={submitting}
               />

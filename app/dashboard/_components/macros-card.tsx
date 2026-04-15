@@ -6,9 +6,12 @@ import { motion } from "framer-motion";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface MacroTotals  { protein_g: number; carbs_g: number; fat_g: number }
+interface MacroTotals  { protein_g: number; carbs_g: number; fat_g: number; fiber_g?: number }
 interface MacroTargets { protein: number;   carbs: number;   fat: number  }
 interface Props { totals: MacroTotals; targets: MacroTargets }
+
+/** Standard recommended daily fiber intake (g). Used as the progress bar target. */
+const FIBER_DAILY_REF = 25;
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -101,7 +104,7 @@ export function MacrosCard({ totals, targets }: Props) {
           </div>
         )}
 
-        {/* ── Progress bars ── */}
+        {/* ── Progress bars — Protein / Carbs / Fat ── */}
         <div className="grid grid-cols-3 gap-3">
           {macros.map(({ label, grams, target, color }, i) => (
             <div key={label} className="space-y-1.5">
@@ -125,6 +128,30 @@ export function MacrosCard({ totals, targets }: Props) {
             </div>
           ))}
         </div>
+
+        {/* ── Fiber bar ── */}
+        {totals.fiber_g !== undefined && (
+          <div className="mt-4 pt-4 border-t border-border/50">
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full flex-shrink-0 bg-emerald-500" />
+                <p className="text-xs font-medium text-muted-foreground">Fiber</p>
+              </div>
+              <p className="text-xs font-bold text-foreground tabular-nums">
+                {totals.fiber_g.toFixed(1)}g
+                <span className="text-xs font-normal text-muted-foreground ml-0.5">/{FIBER_DAILY_REF}g rec.</span>
+              </p>
+            </div>
+            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+              <motion.div
+                className="h-full w-full rounded-full origin-left bg-emerald-500"
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: pct(totals.fiber_g, FIBER_DAILY_REF) / 100 }}
+                transition={{ duration: 1, ease: [0.4, 0, 0.2, 1], delay: 0.24 }}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );

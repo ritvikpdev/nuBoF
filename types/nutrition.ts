@@ -24,6 +24,7 @@ export interface CustomFood {
   protein_g: number;
   carbs_g: number;
   fat_g: number;
+  fiber_g: number | null;
   iron_mg: number;
   potassium_mg: number | null;
   magnesium_mg: number | null;
@@ -41,15 +42,17 @@ export interface WaterLog {
 }
 
 export interface FoodLogEntry {
+  /** Optional for optimistic/temporary entries that haven't been persisted yet. */
   id?: string;
-  user_id?: string;
-  date?: string;
-  food_name?: string;
-  calories?: number;
-  protein_g?: number;
-  carbs_g?: number;
-  fat_g?: number;
-  iron_mg?: number;
+  user_id: string;
+  date: string;
+  food_name: string;
+  calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  fiber_g?: number | null;
+  iron_mg: number;
   potassium_mg?: number | null;
   magnesium_mg?: number | null;
   vitamin_c_mg?: number | null;
@@ -71,6 +74,7 @@ export interface DailyTotals {
   protein_g: number;
   carbs_g: number;
   fat_g: number;
+  fiber_g: number;
   iron_mg: number;
   potassium_mg: number;
   magnesium_mg: number;
@@ -86,9 +90,17 @@ export interface UsdaFoodNutrient {
 }
 
 /** A food item returned by the USDA /foods/search endpoint. */
+export type UsdaDataType = "Foundation" | "SR Legacy" | "Branded" | string;
+
 export interface UsdaFood {
   fdcId: number;
   description: string;
+  dataType?: UsdaDataType;
+  brandOwner?: string;
+  brandName?: string;
+  servingSize?: number;
+  servingSizeUnit?: string;
+  householdServingFullText?: string;
   foodNutrients: UsdaFoodNutrient[];
   [key: string]: unknown;
 }
@@ -97,10 +109,15 @@ export interface ParsedFood {
   /** USDA FDC ID (falls back to stringified index if absent). */
   foodId: string;
   name: string;
+  normalizedName?: string;
+  rawDescription?: string;
+  dataType?: UsdaDataType;
   calories: number;
   protein_g: number;
   carbs_g: number;
   fat_g: number;
+  /** Dietary fiber (g). Optional — not stored in food_logs DB column. */
+  fiber_g?: number;
   iron_mg: number;
   potassium_mg: number;
   magnesium_mg: number;
@@ -108,6 +125,10 @@ export interface ParsedFood {
   vitamin_d_mcg: number;
   servingSize?: number;
   servingSizeUnit?: string;
+  /** Brand owner or brand name for USDA Branded foods. */
+  brand?: string;
+  matchScore?: number;
+  matchReasons?: string[];
 }
 
 export interface SavedMeal {
@@ -136,4 +157,16 @@ export interface MealIngredient {
   magnesium_mg?: number | null;
   vitamin_c_mg?: number | null;
   vitamin_d_mcg?: number | null;
+}
+
+export interface SavedMealWithIngredients extends SavedMeal {
+  meal_ingredients: MealIngredient[];
+}
+
+/** A food item being assembled in the create-meal builder (not yet persisted). */
+export interface DraftIngredient {
+  /** Stable local key for list operations. */
+  draftId: string;
+  food: ParsedFood;
+  qty: number;
 }

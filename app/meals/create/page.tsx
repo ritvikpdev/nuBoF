@@ -14,6 +14,8 @@ import { searchFoods } from "@/services/nutrition";
 import { toCustomParsedFood } from "@/services/custom-foods";
 import type { ParsedFood } from "@/types";
 import { FoodDetailSheet } from "@/app/search/_components/food-detail-sheet";
+import { SearchResultSkeleton } from "@/components/ui/search-result-skeleton";
+import { FoodSourceBadge } from "@/components/ui/food-source-badge";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -30,29 +32,6 @@ function calcTotals(ingredients: DraftIngredient[]) {
       fat_g:     acc.fat_g     + food.fat_g     * qty,
     }),
     { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 },
-  );
-}
-
-// ─── Search result skeleton ───────────────────────────────────────────────────
-
-function SearchSkeleton() {
-  return (
-    <div className="space-y-2">
-      {[1, 2, 3].map((i) => (
-        <div
-          key={i}
-          className="bg-card rounded-xl border border-border p-3.5 animate-pulse"
-          style={{ animationDelay: `${i * 60}ms` }}
-        >
-          <div className="h-4 bg-muted rounded w-2/3 mb-2" />
-          <div className="flex gap-4">
-            <div className="h-3 bg-muted rounded w-12" />
-            <div className="h-3 bg-muted rounded w-12" />
-            <div className="h-3 bg-muted rounded w-12" />
-          </div>
-        </div>
-      ))}
-    </div>
   );
 }
 
@@ -380,7 +359,7 @@ export default function CreateMealPage() {
                 </div>
 
                 {/* Results */}
-                {isSearching && <SearchSkeleton />}
+                {isSearching && <SearchResultSkeleton count={3} />}
 
                 {searchError && !isSearching && (
                   <p className="text-sm text-muted-foreground text-center py-8">{searchError}</p>
@@ -404,11 +383,10 @@ export default function CreateMealPage() {
                               <p className="text-sm font-medium text-foreground leading-snug truncate">
                                 {food.name}
                               </p>
-                              {customFoodIds.has(food.foodId) && (
-                                <span className="flex-shrink-0 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
-                                  Custom
-                                </span>
-                              )}
+                              <FoodSourceBadge
+                                food={food}
+                                isCustom={customFoodIds.has(food.foodId)}
+                              />
                             </div>
                             <div className="flex gap-3 mt-0.5">
                               <span className="text-xs font-bold text-foreground tabular-nums">

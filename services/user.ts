@@ -1,4 +1,4 @@
-import type { UserProfile, BiologicalSex, PrimaryGoalKey, WaterUnit } from "@/types";
+import type { UserProfile, BiologicalSex, PrimaryGoalKey, SubGoalKey, WaterUnit } from "@/types";
 import { createClient } from "@/lib/supabase/client";
 
 /** Returns the user's profile row from the users table, or null if not onboarded. */
@@ -7,7 +7,7 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
 
   const { data, error } = await supabase
     .from("users")
-    .select("id, name, sex, age, height_cm, weight_kg, activity_level, primary_goal, water_unit")
+    .select("id, name, sex, age, height_cm, weight_kg, activity_level, primary_goal, sub_goal, water_unit")
     .eq("id", userId)
     .maybeSingle();
 
@@ -26,6 +26,7 @@ export async function upsertUserProfile(
     weight_kg: number;
     activity_level: number;
     primary_goal: PrimaryGoalKey;
+    sub_goal?: SubGoalKey | null;
     water_unit?: WaterUnit;
   },
 ): Promise<void> {

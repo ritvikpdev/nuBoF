@@ -2,7 +2,7 @@ import type { CustomFood, ParsedFood } from "@/types";
 import { createClient } from "@/lib/supabase/client";
 
 const CUSTOM_FOOD_SELECT =
-  "id, user_id, name, serving_size, serving_unit, calories, protein_g, carbs_g, fat_g, iron_mg, potassium_mg, magnesium_mg, vitamin_c_mg, vitamin_d_mcg, created_at";
+  "id, user_id, name, serving_size, serving_unit, calories, protein_g, carbs_g, fat_g, fiber_g, iron_mg, potassium_mg, magnesium_mg, vitamin_c_mg, vitamin_d_mcg, created_at";
 
 /** Fetches all custom foods for a user, ordered newest first. */
 export async function getCustomFoods(userId: string): Promise<CustomFood[]> {
@@ -25,6 +25,7 @@ export interface CreateCustomFoodInput {
   protein_g: number;
   carbs_g: number;
   fat_g: number;
+  fiber_g?: number | null;
   iron_mg: number;
   potassium_mg?: number | null;
   magnesium_mg?: number | null;
@@ -64,18 +65,19 @@ export async function deleteCustomFood(id: string): Promise<void> {
  */
 export function toCustomParsedFood(food: CustomFood): ParsedFood {
   return {
-    foodId:        `custom-${food.id}`,
-    name:          food.name,
-    calories:      food.calories,
-    protein_g:     Number(food.protein_g),
-    carbs_g:       Number(food.carbs_g),
-    fat_g:         Number(food.fat_g),
-    iron_mg:       Number(food.iron_mg),
-    potassium_mg:  Number(food.potassium_mg  ?? 0),
-    magnesium_mg:  Number(food.magnesium_mg  ?? 0),
-    vitamin_c_mg:  Number(food.vitamin_c_mg  ?? 0),
-    vitamin_d_mcg: Number(food.vitamin_d_mcg ?? 0),
-    servingSize:   Number(food.serving_size),
+    foodId:          `custom-${food.id}`,
+    name:            food.name,
+    calories:        food.calories,
+    protein_g:       Number(food.protein_g),
+    carbs_g:         Number(food.carbs_g),
+    fat_g:           Number(food.fat_g),
+    fiber_g:         food.fiber_g !== null ? Number(food.fiber_g) : undefined,
+    iron_mg:         Number(food.iron_mg),
+    potassium_mg:    Number(food.potassium_mg  ?? 0),
+    magnesium_mg:    Number(food.magnesium_mg  ?? 0),
+    vitamin_c_mg:    Number(food.vitamin_c_mg  ?? 0),
+    vitamin_d_mcg:   Number(food.vitamin_d_mcg ?? 0),
+    servingSize:     Number(food.serving_size),
     servingSizeUnit: food.serving_unit,
   };
 }

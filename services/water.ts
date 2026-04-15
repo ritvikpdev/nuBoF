@@ -1,10 +1,11 @@
 import type { WaterLog } from "@/types";
 import { createClient } from "@/lib/supabase/client";
+import { todayDateStr } from "@/lib/dates";
 
 /** Fetches all water log entries for today, ordered oldest first. */
 export async function getTodayWater(userId: string): Promise<WaterLog[]> {
   const supabase = createClient();
-  const today = new Date().toLocaleDateString("en-CA");
+  const today = todayDateStr();
 
   const { data, error } = await supabase
     .from("water_logs")
@@ -20,7 +21,7 @@ export async function getTodayWater(userId: string): Promise<WaterLog[]> {
 /** Logs a water intake event (amount in ml). */
 export async function logWater(userId: string, amountMl: number): Promise<WaterLog> {
   const supabase = createClient();
-  const today = new Date().toLocaleDateString("en-CA");
+  const today = todayDateStr();
 
   const { data, error } = await supabase
     .from("water_logs")

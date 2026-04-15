@@ -1,5 +1,7 @@
 import type { ParsedFood, UsdaFood, UsdaFoodNutrient, FoodLogEntry, DailyGoals } from "@/types";
 import { createClient } from "@/lib/supabase/client";
+import { todayDateStr } from "@/lib/dates";
+import { normalizeUsdaText } from "@/lib/usda-search";
 
 // ─── USDA nutrient ID constants ───────────────────────────────────────────────
 // Reference: https://fdc.nal.usda.gov/api-guide
@@ -8,6 +10,7 @@ const NID = {
   PROTEIN:   1003,
   FAT:       1004,
   CARBS:     1005,
+  FIBER:     1079, // Fiber, total dietary
   IRON:      1089,
   MAGNESIUM: 1090,
   POTASSIUM: 1092,
@@ -23,18 +26,34 @@ function getNutrient(nutrients: UsdaFoodNutrient[], id: number): number {
 /** Converts a USDA FoodData Central food item into the app's internal ParsedFood shape. */
 function parseUsdaFood(food: UsdaFood, index: number): ParsedFood {
   const n = food.foodNutrients ?? [];
+  const brand = food.brandOwner || food.brandName || undefined;
+  const description = food.description ?? "";
+  const displayName = brand ? `${brand} - ${description}` : description;
+
+  // USDA nutrient values are always per 100 g regardless of data type.
+  // Do NOT use food.servingSize here — that is the branded label serving
+  // (e.g. 28 g) and would misrepresent the per-100 g values.
   return {
-    foodId:        food.fdcId ? String(food.fdcId) : String(index),
-    name:          food.description ?? "",
-    calories:      Math.round(getNutrient(n, NID.ENERGY)),
-    protein_g:     +getNutrient(n, NID.PROTEIN).toFixed(1),
-    fat_g:         +getNutrient(n, NID.FAT).toFixed(1),
-    carbs_g:       +getNutrient(n, NID.CARBS).toFixed(1),
-    iron_mg:       +getNutrient(n, NID.IRON).toFixed(2),
-    potassium_mg:  +getNutrient(n, NID.POTASSIUM).toFixed(1),
-    magnesium_mg:  +getNutrient(n, NID.MAGNESIUM).toFixed(1),
-    vitamin_c_mg:  +getNutrient(n, NID.VITAMIN_C).toFixed(1),
-    vitamin_d_mcg: +getNutrient(n, NID.VITAMIN_D).toFixed(1),
+    foodId:          food.fdcId ? String(food.fdcId) : String(index),
+    name:            displayName,
+    normalizedName:  normalizeUsdaText(displayName),
+    rawDescription:  description,
+    dataType:        food.dataType,
+    brand,
+    calories:        Math.round(getNutrient(n, NID.ENERGY)),
+    protein_g:       +getNutrient(n, NID.PROTEIN).toFixed(1),
+    fat_g:           +getNutrient(n, NID.FAT).toFixed(1),
+    carbs_g:         +getNutrient(n, NID.CARBS).toFixed(1),
+    fiber_g:         +getNutrient(n, NID.FIBER).toFixed(1),
+    iron_mg:         +getNutrient(n, NID.IRON).toFixed(2),
+    potassium_mg:    +getNutrient(n, NID.POTASSIUM).toFixed(1),
+    magnesium_mg:    +getNutrient(n, NID.MAGNESIUM).toFixed(1),
+    vitamin_c_mg:    +getNutrient(n, NID.VITAMIN_C).toFixed(1),
+    vitamin_d_mcg:   +getNutrient(n, NID.VITAMIN_D).toFixed(1),
+    matchScore:      Number(food.matchScore ?? 0),
+    matchReasons:    Array.isArray(food.matchReasons)
+      ? food.matchReasons.filter((reason): reason is string => typeof reason === "string")
+      : undefined,
   };
 }
 
@@ -62,8 +81,7 @@ export async function logFood(
   mealSplitId?: string | null,
 ): Promise<void> {
   const supabase = createClient();
-  // Use local date (en-CA locale produces YYYY-MM-DD) to avoid UTC midnight cutoff
-  const todayStr = new Date().toLocaleDateString("en-CA");
+  const todayStr = todayDateStr();
 
   const { error } = await supabase.from("food_logs").insert({
     user_id: userId,
@@ -73,6 +91,7 @@ export async function logFood(
     protein_g: food.protein_g,
     carbs_g: food.carbs_g,
     fat_g: food.fat_g,
+    fiber_g: food.fiber_g ?? null,
     iron_mg: food.iron_mg,
     potassium_mg: food.potassium_mg || null,
     magnesium_mg: food.magnesium_mg || null,
@@ -95,6 +114,7 @@ export function scaleFood(food: ParsedFood, qty: number): ParsedFood {
     protein_g:     +(food.protein_g     * qty).toFixed(1),
     carbs_g:       +(food.carbs_g       * qty).toFixed(1),
     fat_g:         +(food.fat_g         * qty).toFixed(1),
+    fiber_g:       food.fiber_g !== undefined ? +(food.fiber_g * qty).toFixed(1) : undefined,
     iron_mg:       +(food.iron_mg       * qty).toFixed(2),
     potassium_mg:  +(food.potassium_mg  * qty).toFixed(1),
     magnesium_mg:  +(food.magnesium_mg  * qty).toFixed(1),
@@ -110,8 +130,21 @@ export async function deleteLog(logId: string): Promise<void> {
   if (error) throw error;
 }
 
+/** Assigns (or clears) the meal split for an existing food log entry. */
+export async function updateLogMealSplit(
+  logId: string,
+  mealSplitId: string | null,
+): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("food_logs")
+    .update({ meal_split_id: mealSplitId })
+    .eq("id", logId);
+  if (error) throw error;
+}
+
 const LOG_SELECT =
-  "id, user_id, date, food_name, calories, protein_g, carbs_g, fat_g, iron_mg, potassium_mg, magnesium_mg, vitamin_c_mg, vitamin_d_mcg, meal_split_id";
+  "id, user_id, date, food_name, calories, protein_g, carbs_g, fat_g, fiber_g, iron_mg, potassium_mg, magnesium_mg, vitamin_c_mg, vitamin_d_mcg, meal_split_id";
 
 /** Fetches food log entries for a user on a specific date (YYYY-MM-DD). */
 export async function getLogsByDate(userId: string, dateStr: string): Promise<FoodLogEntry[]> {

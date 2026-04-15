@@ -5,7 +5,7 @@ import {
   deleteSavedMeal,
   logSavedMeal,
 } from "@/services/meals";
-import type { DraftIngredient, SavedMealWithIngredients } from "@/services/meals";
+import type { DraftIngredient, SavedMealWithIngredients } from "@/types";
 
 export type { DraftIngredient, SavedMealWithIngredients };
 

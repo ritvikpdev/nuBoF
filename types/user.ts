@@ -4,6 +4,11 @@ export type ActivityLevelKey = "sedentary" | "light" | "moderate" | "very";
 
 export type PrimaryGoalKey = "lose" | "maintain" | "gain";
 
+export type SubGoalKey =
+  | "standard_loss" | "body_recomp" | "low_carb"
+  | "general_health" | "athletic_maintain" | "stay_lean"
+  | "lean_gain" | "muscle_build" | "max_gain";
+
 export type WaterUnit = "ml" | "glasses" | "both";
 
 export interface UserProfile {
@@ -15,6 +20,7 @@ export interface UserProfile {
   weight_kg: number;
   activity_level: number;
   primary_goal: PrimaryGoalKey;
+  sub_goal?: SubGoalKey | null;
   water_unit?: WaterUnit;
 }
 
@@ -46,4 +52,15 @@ export interface ActivityLevel {
 export interface PrimaryGoal {
   value: PrimaryGoalKey;
   label: string;
+}
+
+export interface SubGoal {
+  value: SubGoalKey;
+  label: string;
+  description: string;
+  icon: string;
+  parentGoal: PrimaryGoalKey;
+  calorieOffset: number;
+  proteinPerKg: number;
+  fatPct: number;
 }

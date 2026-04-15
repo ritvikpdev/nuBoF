@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Utensils, Plus, Clock } from "lucide-react";
+import { Home, Utensils, Plus, Clock, Settings } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/components/providers/auth-provider";
 
 // ─── Tab config ───────────────────────────────────────────────────────────────
 
@@ -15,7 +15,8 @@ const LEFT_TABS  = [
 ] as const;
 
 const RIGHT_TABS = [
-  { href: "/history",   label: "History", Icon: Clock    },
+  { href: "/history",   label: "History",  Icon: Clock    },
+  { href: "/settings",  label: "Settings", Icon: Settings },
 ] as const;
 
 const FAB_HREF = "/search";

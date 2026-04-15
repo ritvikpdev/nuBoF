@@ -1,4 +1,5 @@
-import type { BiologicalSex, PrimaryGoalKey, CalculatedTargets } from "@/types";
+import type { BiologicalSex, PrimaryGoalKey, SubGoalKey, CalculatedTargets } from "@/types";
+import { SUB_GOALS } from "@/lib/constants";
 
 // ─── Caloric constants ────────────────────────────────────────────────────────
 const CAL_PER_G_PROTEIN = 4;
@@ -34,12 +35,12 @@ function calculateTDEE(bmr: number, activityMultiplier: number): number {
 // ─── Calorie target by goal ───────────────────────────────────────────────────
 
 /**
- * Adjusts TDEE based on the user's primary goal:
- *  - lose:     −500 kcal/day  ≈ ~0.45 kg/week deficit
- *  - gain:     +300 kcal/day  ≈ lean bulk surplus
- *  - maintain: no change
+ * Adjusts TDEE based on the user's goal.
+ * If a sub-goal offset is provided, use it directly. Otherwise fall back to
+ * the legacy primary-goal defaults (-500 / 0 / +300).
  */
-function getTargetCalories(tdee: number, goal: PrimaryGoalKey): number {
+function getTargetCalories(tdee: number, goal: PrimaryGoalKey, calorieOffset?: number): number {
+  if (calorieOffset !== undefined) return tdee + calorieOffset;
   if (goal === "lose") return tdee - 500;
   if (goal === "gain") return tdee + 300;
   return tdee;
@@ -48,24 +49,21 @@ function getTargetCalories(tdee: number, goal: PrimaryGoalKey): number {
 // ─── Macros ───────────────────────────────────────────────────────────────────
 
 /**
- * Evidence-based macro split:
- *
- *  Protein — 1.8 g per kg of bodyweight (supports muscle retention/growth
- *             across all goals; backed by multiple meta-analyses).
- *  Fat     — 25 % of target calories (minimum threshold for hormonal health).
- *  Carbs   — remaining calories (fills energy needs; clamped to ≥ 0 g).
+ * Evidence-based macro split with configurable protein and fat ratios.
+ * When no overrides are given, defaults to 1.8 g/kg protein and 25% fat.
  */
 function getMacros(
   targetCalories: number,
   weightKg: number,
+  proteinPerKg = 1.8,
+  fatPct = 0.25,
 ): { proteinG: number; fatG: number; carbsG: number } {
-  const proteinG = Math.round(1.8 * weightKg);
+  const proteinG = Math.round(proteinPerKg * weightKg);
   const proteinCal = proteinG * CAL_PER_G_PROTEIN;
 
-  const fatCal = targetCalories * 0.25;
+  const fatCal = targetCalories * fatPct;
   const fatG = fatCal / CAL_PER_G_FAT;
 
-  // Clamp carbs to 0 in pathological edge cases (very high protein + extreme deficit)
   const carbsCal = Math.max(0, targetCalories - proteinCal - fatCal);
   const carbsG = carbsCal / CAL_PER_G_CARB;
 
@@ -131,12 +129,10 @@ function getTargetVitaminDMcg(age: number): number {
 /**
  * Computes personalised daily nutrition targets from user biometrics and goal.
  *
- * @param weightKg         Body weight in kg
- * @param heightCm         Height in cm
- * @param age              Age in years
- * @param sex              Biological sex (affects BMR + several RDAs)
- * @param activityMultiplier  Harris-Benedict PAL factor (1.2 – 1.725)
- * @param goal             Dietary goal: lose / maintain / gain
+ * When a `subGoal` is provided its calorie offset, protein g/kg, and fat
+ * percentage are used for precise personalisation. Without one the function
+ * falls back to the original hardcoded defaults (backwards-compatible for
+ * users who onboarded before sub-goals existed).
  */
 export function calculateTargets(
   weightKg: number,
@@ -145,11 +141,22 @@ export function calculateTargets(
   sex: BiologicalSex,
   activityMultiplier: number,
   goal: PrimaryGoalKey,
+  subGoal?: SubGoalKey,
 ): CalculatedTargets {
   const bmr = calculateBMR(weightKg, heightCm, age, sex);
   const tdee = calculateTDEE(bmr, activityMultiplier);
-  const targetCalories = Math.round(getTargetCalories(tdee, goal));
-  const { proteinG, fatG, carbsG } = getMacros(targetCalories, weightKg);
+
+  const sg = subGoal ? SUB_GOALS.find((s) => s.value === subGoal) : undefined;
+
+  const targetCalories = Math.round(
+    getTargetCalories(tdee, goal, sg?.calorieOffset),
+  );
+  const { proteinG, fatG, carbsG } = getMacros(
+    targetCalories,
+    weightKg,
+    sg?.proteinPerKg,
+    sg?.fatPct,
+  );
 
   return {
     bmr: Math.round(bmr),

@@ -12,6 +12,7 @@ import type { CustomFood } from "@/types/nutrition";
 import { MealCard } from "./_components/meal-card";
 import { CustomFoodSheet } from "@/app/search/_components/custom-food-sheet";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TrashIcon } from "@/components/ui/icons";
 
 // ─── Loading skeleton ──────────────────────────────────────────────────────────
 
@@ -246,9 +247,7 @@ export default function MealsPage() {
                         className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0 disabled:opacity-40"
                         aria-label={`Delete ${food.name}`}
                       >
-                        <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" aria-hidden>
-                          <path d="M6.5 2h3M2 4h12m-1.5 0L11 13H5L3.5 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
+                        <TrashIcon />
                       </button>
                     </motion.div>
                   ))}

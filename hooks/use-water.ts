@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getTodayWater, logWater, deleteWaterLog } from "@/services/water";
+import { todayDateStr } from "@/lib/dates";
 import type { WaterLog } from "@/types";
 
 const ML_PER_GLASS = 250;
@@ -39,7 +40,7 @@ export function useLogWater(userId: string | undefined) {
       const optimistic: WaterLog = {
         id:         `opt-${Date.now()}`,
         user_id:    userId,
-        date:       new Date().toLocaleDateString("en-CA"),
+        date:       todayDateStr(),
         amount_ml:  amountMl,
         created_at: new Date().toISOString(),
       };

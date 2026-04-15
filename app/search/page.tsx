@@ -11,33 +11,14 @@ import { useCustomFoods } from "@/hooks/use-custom-foods";
 import { useSavedMeals, useLogMeal } from "@/hooks/use-meals";
 import { searchFoods, logFood, scaleFood } from "@/services/nutrition";
 import { toCustomParsedFood } from "@/services/custom-foods";
+import { todayDateStr } from "@/lib/dates";
+import { MACRO_COLORS } from "@/lib/constants";
 import type { ParsedFood, FoodLogEntry, MealSplit } from "@/types";
 import type { SavedMealWithIngredients } from "@/hooks/use-meals";
 import { FoodDetailSheet } from "./_components/food-detail-sheet";
 import { CustomFoodSheet } from "./_components/custom-food-sheet";
-
-// ─── Search result skeleton ────────────────────────────────────────────────────
-
-function ResultSkeleton() {
-  return (
-    <div className="space-y-2.5">
-      {[1, 2, 3, 4].map((i) => (
-        <div
-          key={i}
-          className="bg-card rounded-2xl border border-border p-4 animate-pulse"
-          style={{ animationDelay: `${i * 60}ms` }}
-        >
-          <div className="h-4 bg-muted rounded-md w-2/3 mb-3" />
-          <div className="flex gap-4">
-            <div className="h-3 bg-muted rounded w-14" />
-            <div className="h-3 bg-muted rounded w-14" />
-            <div className="h-3 bg-muted rounded w-14" />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
+import { SearchResultSkeleton } from "@/components/ui/search-result-skeleton";
+import { FoodSourceBadge } from "@/components/ui/food-source-badge";
 
 // ─── Result card ──────────────────────────────────────────────────────────────
 
@@ -50,11 +31,11 @@ function ResultCard({
   onSelect: (food: ParsedFood) => void;
   isCustom?: boolean;
 }) {
-  const macros = [
-    { label: "P", value: food.protein_g, color: "text-blue-500" },
-    { label: "C", value: food.carbs_g,   color: "text-orange-500" },
-    { label: "F", value: food.fat_g,     color: "text-amber-500" },
-  ];
+  const macros = MACRO_COLORS.slice(0, 3).map((m) => ({
+    label: m.label,
+    value: food[m.key as keyof ParsedFood] as number,
+    color: m.color,
+  }));
 
   return (
     <motion.button
@@ -72,21 +53,15 @@ function ResultCard({
             <p className="font-semibold text-sm text-foreground leading-snug line-clamp-2">
               {food.name}
             </p>
-            {isCustom && (
-              <span className="flex-shrink-0 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
-                Custom
-              </span>
-            )}
+            <FoodSourceBadge food={food} isCustom={isCustom} />
           </div>
           <div className="flex items-center gap-3 mt-0.5">
             <span className="text-xs font-bold text-foreground tabular-nums">
               {food.calories} <span className="font-normal text-muted-foreground">kcal</span>
             </span>
-            {food.servingSize && (
-              <span className="text-xs text-muted-foreground">
-                per {food.servingSize}{food.servingSizeUnit}
-              </span>
-            )}
+            <span className="text-xs text-muted-foreground">
+              per {food.servingSize ?? 100}{food.servingSizeUnit ?? "g"}
+            </span>
             {macros.map(({ label, value, color }) => (
               <span key={label} className="text-xs text-muted-foreground tabular-nums">
                 <span className={`font-semibold ${color}`}>{label}</span>{" "}
@@ -306,12 +281,13 @@ export default function SearchPage() {
       const optimistic: FoodLogEntry = {
         id:            `opt-${Date.now()}`,
         user_id:       user.id,
-        date:          new Date().toLocaleDateString("en-CA"),
+        date:          todayDateStr(),
         food_name:     scaled.name,
         calories:      scaled.calories,
         protein_g:     scaled.protein_g,
         carbs_g:       scaled.carbs_g,
         fat_g:         scaled.fat_g,
+        fiber_g:       scaled.fiber_g ?? null,
         iron_mg:       scaled.iron_mg,
         potassium_mg:  scaled.potassium_mg  || null,
         magnesium_mg:  scaled.magnesium_mg  || null,
@@ -393,7 +369,7 @@ export default function SearchPage() {
 
             <input
               ref={inputRef}
-              type="search"
+              type="text"
               value={query}
               onChange={(e) => {
                 const val = e.target.value;
@@ -467,7 +443,7 @@ export default function SearchPage() {
                 )}
 
           {/* ── Loading skeleton ── */}
-          {isSearching && <ResultSkeleton />}
+          {isSearching && <SearchResultSkeleton />}
 
           {/* ── Error ── */}
           {searchError && (

@@ -24,6 +24,7 @@ const schema = z.object({
   protein_g:     positiveNum,
   carbs_g:       positiveNum,
   fat_g:         positiveNum,
+  fiber_g:       positiveNum,
   // Micros optional
   iron_mg:       positiveNum,
   potassium_mg:  positiveNum,
@@ -113,6 +114,7 @@ export function CustomFoodSheet({ isOpen, onClose, userId }: Props) {
       protein_g: "",
       carbs_g: "",
       fat_g: "",
+      fiber_g: "",
       iron_mg: "",
       potassium_mg: "",
       magnesium_mg: "",
@@ -151,6 +153,7 @@ export function CustomFoodSheet({ isOpen, onClose, userId }: Props) {
         protein_g:     Number(values.protein_g)     || 0,
         carbs_g:       Number(values.carbs_g)       || 0,
         fat_g:         Number(values.fat_g)         || 0,
+        fiber_g:       values.fiber_g ? Number(values.fiber_g) : null,
         iron_mg:       Number(values.iron_mg)       || 0,
         potassium_mg:  values.potassium_mg  ? Number(values.potassium_mg)  : null,
         magnesium_mg:  values.magnesium_mg  ? Number(values.magnesium_mg)  : null,
@@ -285,6 +288,9 @@ export function CustomFoodSheet({ isOpen, onClose, userId }: Props) {
                   </Field>
                   <Field label="Fat" error={errors.fat_g?.message}>
                     <NumberInput {...register("fat_g")} unit="g" />
+                  </Field>
+                  <Field label="Fiber (optional)" error={errors.fiber_g?.message}>
+                    <NumberInput {...register("fiber_g")} unit="g" />
                   </Field>
                 </div>
               </div>

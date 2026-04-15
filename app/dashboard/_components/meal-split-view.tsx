@@ -1,10 +1,14 @@
 "use client";
 
-import { useMemo } from "react";
-import { motion } from "framer-motion";
+import { useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Spinner } from "@/components/ui/spinner";
+import { TrashIcon, MoveIcon } from "@/components/ui/icons";
+import { MACRO_COLORS } from "@/lib/constants";
 import type { FoodLogEntry, MealSplit, DailyGoals } from "@/types";
 import { MealSplitSection } from "./meal-split-section";
+
+const MACROS = MACRO_COLORS.slice(0, 3);
 
 interface Props {
   splits: MealSplit[];
@@ -13,37 +17,29 @@ interface Props {
   goals: DailyGoals;
   onDelete: (logId: string) => void;
   deletingId?: string;
+  onMove: (logId: string, splitId: string) => void;
+  movingId?: string;
   onManage: () => void;
-}
-
-const MACROS = [
-  { key: "protein_g" as const, label: "P", color: "text-blue-500"   },
-  { key: "carbs_g"   as const, label: "C", color: "text-orange-500" },
-  { key: "fat_g"     as const, label: "F", color: "text-amber-500"  },
-];
-
-function TrashIcon() {
-  return (
-    <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" aria-hidden>
-      <path
-        d="M6.5 2h3M2 4h12m-1.5 0L11 13H5L3.5 4"
-        stroke="currentColor" strokeWidth="1.4"
-        strokeLinecap="round" strokeLinejoin="round"
-      />
-    </svg>
-  );
 }
 
 /** Section for logs that have no meal_split_id. */
 function UncategorizedSection({
   logs,
+  splits,
   onDelete,
+  onMove,
   deletingId,
+  movingId,
 }: {
   logs: FoodLogEntry[];
+  splits: MealSplit[];
   onDelete: (id: string) => void;
+  onMove: (logId: string, splitId: string) => void;
   deletingId?: string;
+  movingId?: string;
 }) {
+  const [moveOpenId, setMoveOpenId] = useState<string | null>(null);
+
   if (logs.length === 0) return null;
 
   return (
@@ -53,47 +49,109 @@ function UncategorizedSection({
           Uncategorized
         </p>
         <ul className="space-y-0.5 -mx-1">
-          {logs.map((log, i) => (
-            <li
-              key={log.id ?? i}
-              className="group flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted/60 transition-colors"
-            >
-              <div className="flex-shrink-0 w-12 text-right">
-                <span className="text-sm font-bold text-foreground tabular-nums">
-                  {Math.round(Number(log.calories ?? 0))}
-                </span>
-                <span className="text-[10px] text-muted-foreground block -mt-0.5">kcal</span>
-              </div>
-              <div className="w-px h-6 bg-border flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm text-foreground leading-snug truncate">
-                  {log.food_name ?? "Unknown food"}
-                </p>
-                <div className="flex items-center gap-3 mt-0.5">
-                  {MACROS.map(({ key, label, color }) => (
-                    <span key={key} className="text-[11px] text-muted-foreground tabular-nums">
-                      <span className={`font-semibold ${color}`}>{label}</span>{" "}
-                      {Math.round(Number(log[key] ?? 0))}g
+          {logs.map((log, i) => {
+            const id = log.id ?? String(i);
+            const isMoving = movingId === log.id;
+            const pickerOpen = moveOpenId === id;
+
+            return (
+              <li key={id} className="rounded-xl overflow-hidden">
+                {/* Main row */}
+                <div className="group flex items-center gap-3 px-3 py-2.5 hover:bg-muted/60 transition-colors">
+                  <div className="flex-shrink-0 w-12 text-right">
+                    <span className="text-sm font-bold text-foreground tabular-nums">
+                      {Math.round(Number(log.calories ?? 0))}
                     </span>
-                  ))}
-                </div>
-              </div>
-              {log.id && (
-                <button
-                  onClick={() => onDelete(log.id!)}
-                  disabled={deletingId === log.id}
-                  className="opacity-0 group-hover:opacity-100 p-1.5 text-muted-foreground hover:text-destructive disabled:opacity-40 rounded-lg hover:bg-destructive/10 transition-all"
-                  aria-label={`Remove ${log.food_name ?? "food"}`}
-                >
-                  {deletingId === log.id ? (
-                    <Spinner className="w-3.5 h-3.5" />
-                  ) : (
-                    <TrashIcon />
+                    <span className="text-[10px] text-muted-foreground block -mt-0.5">kcal</span>
+                  </div>
+                  <div className="w-px h-6 bg-border flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm text-foreground leading-snug truncate">
+                      {log.food_name ?? "Unknown food"}
+                    </p>
+                    <div className="flex items-center gap-3 mt-0.5">
+                      {MACROS.map(({ key, label, color }) => (
+                        <span key={key} className="text-[11px] text-muted-foreground tabular-nums">
+                          <span className={`font-semibold ${color}`}>{label}</span>{" "}
+                          {Math.round(Number(log[key] ?? 0))}g
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Action buttons — visible on hover or when picker is open */}
+                  {log.id && (
+                    <div className={`flex items-center gap-1 transition-opacity ${pickerOpen ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
+                      {/* Move button */}
+                      {splits.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setMoveOpenId(pickerOpen ? null : id)}
+                          disabled={isMoving}
+                          className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                            pickerOpen
+                              ? "bg-primary/10 text-primary"
+                              : "text-muted-foreground hover:text-primary hover:bg-primary/10"
+                          } disabled:opacity-40`}
+                          aria-label={`Move ${log.food_name ?? "food"} to a meal`}
+                          aria-expanded={pickerOpen}
+                        >
+                          {isMoving ? <Spinner className="w-3.5 h-3.5" /> : <MoveIcon />}
+                        </button>
+                      )}
+                      {/* Delete button */}
+                      <button
+                        onClick={() => onDelete(log.id!)}
+                        disabled={deletingId === log.id}
+                        className="p-1.5 text-muted-foreground hover:text-destructive disabled:opacity-40 rounded-lg hover:bg-destructive/10 transition-all cursor-pointer"
+                        aria-label={`Remove ${log.food_name ?? "food"}`}
+                      >
+                        {deletingId === log.id ? (
+                          <Spinner className="w-3.5 h-3.5" />
+                        ) : (
+                          <TrashIcon />
+                        )}
+                      </button>
+                    </div>
                   )}
-                </button>
-              )}
-            </li>
-          ))}
+                </div>
+
+                {/* Inline move-to picker */}
+                <AnimatePresence initial={false}>
+                  {pickerOpen && splits.length > 0 && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2, ease: "easeInOut" }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-3 pb-3 pt-1">
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">
+                          Move to
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {splits.map((split) => (
+                            <button
+                              key={split.id}
+                              type="button"
+                              onClick={() => {
+                                onMove(log.id!, split.id);
+                                setMoveOpenId(null);
+                              }}
+                              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary border border-transparent hover:border-primary/20 transition-colors cursor-pointer"
+                            >
+                              {split.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </li>
+            );
+          })}
         </ul>
       </div>
     </section>
@@ -107,6 +165,8 @@ export function MealSplitView({
   goals,
   onDelete,
   deletingId,
+  onMove,
+  movingId,
   onManage,
 }: Props) {
   /** Group logs by meal_split_id. */
@@ -189,8 +249,11 @@ export function MealSplitView({
       {uncategorized.length > 0 && (
         <UncategorizedSection
           logs={uncategorized}
+          splits={splits}
           onDelete={onDelete}
+          onMove={onMove}
           deletingId={deletingId}
+          movingId={movingId}
         />
       )}
     </div>

@@ -1,20 +1,9 @@
-import type { SavedMeal, MealIngredient, ParsedFood } from "@/types";
+import type { SavedMeal, MealIngredient, ParsedFood, DraftIngredient, SavedMealWithIngredients } from "@/types";
 import { createClient } from "@/lib/supabase/client";
+import { todayDateStr } from "@/lib/dates";
 import { scaleFood } from "./nutrition";
 
-// ─── Extended types ────────────────────────────────────────────────────────────
-
-export interface SavedMealWithIngredients extends SavedMeal {
-  meal_ingredients: MealIngredient[];
-}
-
-/** A food item being assembled in the create-meal builder (not yet persisted). */
-export interface DraftIngredient {
-  /** Stable local key for list operations. */
-  draftId: string;
-  food: ParsedFood;
-  qty: number;
-}
+export type { DraftIngredient };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -124,7 +113,7 @@ export async function logSavedMeal(
   mealSplitId?: string | null,
 ): Promise<void> {
   const supabase = createClient();
-  const todayStr = new Date().toLocaleDateString("en-CA");
+  const todayStr = todayDateStr();
 
   const rows = meal.meal_ingredients.map((ing) => ({
     user_id:       userId,

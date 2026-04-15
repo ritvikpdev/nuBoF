@@ -2,17 +2,16 @@
 
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "sonner";
 import { useUser } from "@/hooks/use-user";
-import { useDailyGoals } from "@/hooks/use-nutrition";
+import { useDailyGoals, useDeleteLog } from "@/hooks/use-nutrition";
 import { useLogsByDate, useWeeklyTrend } from "@/hooks/use-history";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { deleteLog, logFood } from "@/services/nutrition";
 import { todayDateStr, formatDateHeading } from "@/lib/dates";
 import { DateStrip } from "./_components/date-strip";
 import { WeeklyChart } from "./_components/weekly-chart";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
+import { TrashIcon } from "@/components/ui/icons";
+import { MACRO_COLORS } from "@/lib/constants";
 import type { FoodLogEntry } from "@/types";
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
@@ -162,11 +161,7 @@ function DaySummaryCard({
 
 // ─── Log list for a day ────────────────────────────────────────────────────────
 
-const LOG_MACROS = [
-  { key: "protein_g" as keyof FoodLogEntry, label: "P", color: "text-blue-500"   },
-  { key: "carbs_g"   as keyof FoodLogEntry, label: "C", color: "text-orange-500" },
-  { key: "fat_g"     as keyof FoodLogEntry, label: "F", color: "text-amber-500"  },
-];
+const LOG_MACROS = MACRO_COLORS.slice(0, 3);
 
 interface DayLogListProps {
   logs: FoodLogEntry[];
@@ -249,9 +244,7 @@ function DayLogList({ logs, onDelete, deletingId }: DayLogListProps) {
                       {deletingId === log.id ? (
                         <Spinner className="w-3.5 h-3.5" />
                       ) : (
-                        <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" aria-hidden>
-                          <path d="M6.5 2h3M2 4h12m-1.5 0L11 13H5L3.5 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
+                        <TrashIcon />
                       )}
                     </button>
                   )}
@@ -269,7 +262,6 @@ function DayLogList({ logs, onDelete, deletingId }: DayLogListProps) {
 
 export default function HistoryPage() {
   const { user } = useUser();
-  const queryClient = useQueryClient();
   const [selectedDate, setSelectedDate] = useState(todayDateStr);
 
   // Data queries
@@ -285,77 +277,11 @@ export default function HistoryPage() {
     fat:       goals?.target_fat      ?? 65,
   }), [goals]);
 
-  // Delete mutation (optimistic — also works on past dates)
-  const deleteMutation = useMutation({
-    mutationFn: (logId: string) => deleteLog(logId),
-
-    // ① Remove item instantly from the day's log cache.
-    onMutate: async (logId) => {
-      if (!user) return;
-      const logsKey = ["logs", user.id, selectedDate] as const;
-      await queryClient.cancelQueries({ queryKey: logsKey });
-      const snapshot = queryClient.getQueryData<FoodLogEntry[]>(logsKey);
-      const deleted  = (snapshot ?? []).find((l) => l.id === logId);
-
-      queryClient.setQueryData<FoodLogEntry[]>(
-        logsKey,
-        (old) => (old ?? []).filter((l) => l.id !== logId),
-      );
-
-      return { snapshot, deleted };
-    },
-
-    // ② Rollback on error.
-    onError: (err: Error, _logId, context) => {
-      if (context?.snapshot !== undefined) {
-        queryClient.setQueryData(
-          ["logs", user?.id, selectedDate],
-          context.snapshot,
-        );
-      }
-      toast.error(`Could not remove entry: ${err.message}`);
-    },
-
-    // ③ Sync server data and offer Undo (only for today's date).
-    onSuccess: (_data, _logId, context) => {
-      void queryClient.invalidateQueries({ queryKey: ["logs",        user?.id, selectedDate] });
-      void queryClient.invalidateQueries({ queryKey: ["weeklyTrend", user?.id] });
-
-      const entry      = context?.deleted;
-      const isToday    = selectedDate === todayDateStr();
-
-      if (!entry || !user || !isToday) {
-        toast.success("Entry removed.");
-        return;
-      }
-
-      // Offer undo only for today's entries (can re-log to today meaningfully).
-      toast("Entry removed.", {
-        action: {
-          label: "Undo",
-          onClick: () => {
-            void logFood(user.id, {
-              foodId:        `undo-${entry.id}`,
-              name:          entry.food_name     ?? "Unknown food",
-              calories:      Number(entry.calories      ?? 0),
-              protein_g:     Number(entry.protein_g     ?? 0),
-              carbs_g:       Number(entry.carbs_g       ?? 0),
-              fat_g:         Number(entry.fat_g         ?? 0),
-              iron_mg:       Number(entry.iron_mg       ?? 0),
-              potassium_mg:  Number(entry.potassium_mg  ?? 0),
-              magnesium_mg:  Number(entry.magnesium_mg  ?? 0),
-              vitamin_c_mg:  Number(entry.vitamin_c_mg  ?? 0),
-              vitamin_d_mcg: Number(entry.vitamin_d_mcg ?? 0),
-            }).then(() => {
-              void queryClient.invalidateQueries({ queryKey: ["logs",        user.id, selectedDate] });
-              void queryClient.invalidateQueries({ queryKey: ["todayLogs",   user.id] });
-              void queryClient.invalidateQueries({ queryKey: ["weeklyTrend", user.id] });
-            });
-          },
-        },
-      });
-    },
-  });
+  const deleteMutation = useDeleteLog(
+    user?.id,
+    ["logs", user?.id, selectedDate],
+    [["weeklyTrend", user?.id], ["todayLogs", user?.id]],
+  );
 
   const heading = formatDateHeading(selectedDate);
 

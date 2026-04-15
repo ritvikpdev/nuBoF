@@ -9,9 +9,12 @@ export interface Measure {
 
 // ─── Food-type detection ──────────────────────────────────────────────────────
 
-export type FoodType = "fruit" | "liquid" | "meat" | "bread" | "default";
+export type FoodType = "fruit" | "liquid" | "meat" | "bread" | "egg" | "default";
 
 const FOOD_KEYWORDS: Record<FoodType, string[]> = {
+  egg: [
+    "egg", "eggs", "omelette", "omelet", "frittata",
+  ],
   fruit: [
     "apple", "banana", "orange", "grape", "mango", "pear", "peach", "plum",
     "berry", "berries", "strawberry", "blueberry", "raspberry", "watermelon",
@@ -39,7 +42,7 @@ const FOOD_KEYWORDS: Record<FoodType, string[]> = {
 
 export function detectFoodType(name: string): FoodType {
   const lower = name.toLowerCase();
-  for (const type of ["fruit", "liquid", "meat", "bread"] as const) {
+  for (const type of ["egg", "fruit", "liquid", "meat", "bread"] as const) {
     if (FOOD_KEYWORDS[type].some((kw) => lower.includes(kw))) return type;
   }
   return "default";
@@ -52,6 +55,16 @@ export function getMeasures(food: ParsedFood): Measure[] {
   const foodType = detectFoodType(food.name);
 
   switch (foodType) {
+    case "egg":
+      return [
+        { label: "small",       gramsPerUnit: 38,     presetType: "piece" },
+        { label: "medium",      gramsPerUnit: 44,     presetType: "piece" },
+        { label: "large",       gramsPerUnit: 50,     presetType: "piece" },
+        { label: "extra-large", gramsPerUnit: 56,     presetType: "piece" },
+        { label: "g",           gramsPerUnit: 1,      presetType: "weight" },
+        { label: "oz",          gramsPerUnit: 28.35,  presetType: "weight" },
+      ];
+
     case "fruit":
       return [
         { label: "small",   gramsPerUnit: 150,    presetType: "piece" },

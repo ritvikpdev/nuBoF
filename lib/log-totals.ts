@@ -12,6 +12,7 @@ export function computeDailyTotals(logs: FoodLogEntry[]): DailyTotals {
       protein_g:     acc.protein_g     + Number(log.protein_g     ?? 0),
       carbs_g:       acc.carbs_g       + Number(log.carbs_g       ?? 0),
       fat_g:         acc.fat_g         + Number(log.fat_g         ?? 0),
+      fiber_g:       acc.fiber_g       + Number(log.fiber_g       ?? 0),
       iron_mg:       acc.iron_mg       + Number(log.iron_mg       ?? 0),
       potassium_mg:  acc.potassium_mg  + Number(log.potassium_mg  ?? 0),
       magnesium_mg:  acc.magnesium_mg  + Number(log.magnesium_mg  ?? 0),
